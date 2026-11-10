@@ -139,13 +139,10 @@ use **GitHub Actions** as its source (Settings → Pages).
 An unofficial fan game, not a GitHub product. Not affiliated with or endorsed
 by GitHub.
 
-- **Origins**: Mona Breaker was created by Christina Warren
-  ([@filmgirl](https://github.com/filmgirl)). The original repository is
+- Created by Christina Warren ([@filmgirl](https://github.com/filmgirl)),
+  currently maintained by Jeramiah Dooley
+  ([@jdooley-clt](https://github.com/jdooley-clt)). The original repository is
   [filmgirl/mona-breaker](https://github.com/filmgirl/mona-breaker).
-- **Maintainer**: this repository is a full-history copy of the original,
-  maintained by [@jdooley-clt](https://github.com/jdooley-clt), and is where
-  the game is now published. Changes made here are credited to their own
-  contributors; Christina's credits stay as they are.
 - Mona is drawn procedurally with Three.js primitives, following
   [Mona's Merge Maze](https://github.com/jdooley-clt/mona-maze). The pixel Octocat
   favicon and app icons (`assets/favicon.svg`, `assets/*.png`) are drawn for
