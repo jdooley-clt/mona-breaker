@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
 // The real Commit Cabinet, pinned. Update deliberately after reviewing upstream changes.
-export const cabinetSha = '8d32c470d825e4d6b0757270dd351a9f3ea2b01e';
+export const cabinetSha = 'cdbd39c365f5daf50f47d06d10644d61d1572aaf';
 export const cabinetRoot = resolve('.playwright-cabinet');
 export const siteRoot = resolve('_site');
 export const port = Number(process.env.CABINET_PORT || 4264);
