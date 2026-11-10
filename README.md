@@ -5,8 +5,8 @@ break the contribution graph, squash bugs, and merge the pull request.
 
 ## Play
 
-Play online at **<https://filmgirl.github.io/mona-breaker/>**, or find more games in
-[GitHub Arcade](https://filmgirl.github.io/arcade/).
+Play online at **<https://jdooley-clt.github.io/mona-breaker/>**, or find more games in
+[GitHub Arcade](https://jdooley-clt.github.io/arcade/).
 
 It can also be installed as an app: use **Install** in Chrome or Edge's address
 bar, or **Share → Add to Home Screen** on iPhone and iPad. The app uses the same
@@ -88,7 +88,7 @@ bundler, transpiler, or CDN request.
 The footer's GitHub Arcade link is shown only on the standalone site, not inside
 an iframe, so it cannot navigate the cabinet's game frame back into the cabinet.
 
-The Playwright suite runs the real [Commit Cabinet](https://github.com/filmgirl/arcade)
+The Playwright suite runs the real [Commit Cabinet](https://github.com/jdooley-clt/arcade)
 at a pinned commit with the staged game on the same origin, like GitHub Pages:
 
 ```sh
@@ -139,8 +139,15 @@ use **GitHub Actions** as its source (Settings → Pages).
 An unofficial fan game, not a GitHub product. Not affiliated with or endorsed
 by GitHub.
 
+- **Origins**: Mona Breaker was created by Christina Warren
+  ([@filmgirl](https://github.com/filmgirl)). The original repository is
+  [filmgirl/mona-breaker](https://github.com/filmgirl/mona-breaker).
+- **Maintainer**: this repository is a full-history copy of the original,
+  maintained by [@jdooley-clt](https://github.com/jdooley-clt), and is where
+  the game is now published. Changes made here are credited to their own
+  contributors; Christina's credits stay as they are.
 - Mona is drawn procedurally with Three.js primitives, following
-  [Mona's Merge Maze](https://github.com/filmgirl/mona-maze). The pixel Octocat
+  [Mona's Merge Maze](https://github.com/jdooley-clt/mona-maze). The pixel Octocat
   favicon and app icons (`assets/favicon.svg`, `assets/*.png`) are drawn for
   this project. The Octocat design
   is copyright GitHub, Inc. and subject to

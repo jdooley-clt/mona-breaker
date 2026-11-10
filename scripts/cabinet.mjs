@@ -15,7 +15,7 @@ export const fixtureEntry = {
   description: 'Break commits. Squash bugs. Merge the pull request.',
   category: '3D brick breaker',
   url: '/mona-breaker/',
-  repository: 'https://github.com/filmgirl/mona-breaker',
+  repository: 'https://github.com/jdooley-clt/mona-breaker',
   art: './assets/mona-maze.png',
   accent: 'mint',
   controls: [{ keys: 'Mouse / arrows / A-D / drag', action: 'Move' }, { keys: 'Space / click / tap', action: 'Launch' }],
