@@ -70,8 +70,8 @@ cabinet's toolbar.
 ## Develop
 
 ```sh
-npm ci                # Playwright only; the game has no runtime dependencies
-npm test              # Node tests for the simulation
+npm ci                # Playwright and esbuild only; the game has no runtime dependencies
+npm test              # Node tests for the simulation, the icons, and the site's size budget
 npm start
 ```
 
@@ -80,8 +80,16 @@ from one 16x16 pixel map in `scripts/icons.mjs`. Edit the map, then run
 `npm run icons`; a test fails if the committed icons drift from the map.
 
 `src/engine.js` is a DOM-free simulation, so the rules are unit tested in Node.
-Three.js r180 is vendored in `vendor/` exactly as published on npm; there is no
-bundler, transpiler, or CDN request.
+Three.js r180 is vendored in `vendor/` exactly as published on npm, and the
+preview server serves the source files as they are; there is no transpiler or
+CDN request. `npm run build` stages the site into `_site/` and uses
+[esbuild](https://esbuild.github.io/) to bundle `src/main.js` with the engine,
+the music, and only the parts of Three.js the game reaches, so the published
+site is about a quarter smaller than the separate modules (611 KB instead of
+813 KB; 164 KB instead of 210 KB gzipped). `tests/size.test.js` fails if the
+staged site grows more than 10% past that baseline. The renderer asks for the
+`low-power` GPU and caps the device pixel ratio at 2, which keeps demo
+machines and phones cooler without changing how the board looks.
 
 `index.html` ships a strict Content Security Policy — `default-src 'self';
 script-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'` —
@@ -108,7 +116,8 @@ npm run build
 npm run test:cabinet
 ```
 
-`npm run build` only copies the published files into `_site/`. The harness
+`npm run build` stages the published files into `_site/` and bundles the
+scripts. The harness
 serves the cabinet at `/arcade/` and `_site/` at `/mona-breaker/`, and rewrites
 only the Mona Breaker catalog entry (adding a fixture entry if the pinned
 cabinet predates it). Sibling games are replaced with a local stub. It asserts
@@ -125,10 +134,14 @@ checks that the Content Security Policy is served and that no
 `tests/a11y.spec.js` runs [axe-core](https://github.com/dequelabs/axe-core)
 through `@axe-core/playwright` on the start, serving, paused, help-dialog, and
 game-over states (both themes on desktop), standalone and inside the cabinet
-frame, with the WCAG 2.5.3 *Label in Name* rule switched on; any serious or
-critical violation fails the run, and an injected unnamed button proves the
-gate fires. Each state's axe results, including "needs review" items such as
-text over the 3D board, are attached to the Playwright report.
+frame, with the WCAG 2.5.3 *Label in Name* rule switched on. Any violation at
+any impact fails the run, and so does anything axe files for manual review
+under `aria-prohibited-attr` or *Label in Name*, except the three buttons whose
+visible text is a symbol (`?`, `Ⅱ`/`▶`, `×`): WCAG 2.5.3 does not treat
+symbolic characters as a label, so their names state the function instead. An
+injected unnamed button proves the gate fires. Each state's axe results,
+including "needs review" items such as text over the 3D board, are attached to
+the Playwright report.
 
 Limitations: this is headless Chromium (desktop and Pixel 7 emulation) and
 WebKit (iPhone 13 emulation), not physical devices or Firefox. WebKit drag uses
@@ -136,10 +149,11 @@ synthetic touch pointer events. Audio output is not checked audibly.
 
 ## Deploy
 
-Pushes to `main` run **Cabinet compatibility**. Only if it passes does the
-deploy job publish the tested `_site/` artifact to GitHub Pages and confirm the
-published `index.html` digest. Pull requests and forks never deploy. Pages must
-use **GitHub Actions** as its source (Settings → Pages).
+Direct pushes to `main` are blocked; changes land through pull requests that
+pass **Cabinet compatibility**. Every merge to `main` runs it again, and only if
+it passes does the deploy job publish the tested `_site/` artifact to GitHub
+Pages and confirm the published `index.html` digest. Pull requests and forks
+never deploy. Pages must use **GitHub Actions** as its source (Settings → Pages).
 
 Playwright runs two workers, locally and in CI, because the software-rendered
 WebGL board starves when more browsers share the runner; CI also retries a
@@ -157,9 +171,9 @@ dependencies.
 | `src/engine.js` | Physics, bricks, power-ups, bugs, lives, and levels |
 | `src/main.js` | Three.js rendering, input, HUD, audio, and storage |
 | `src/music.js` | Original synthesized Web Audio chiptune |
-| `vendor/` | Three.js r180 module build and its MIT license |
-| `scripts/` | Preview server, site staging, icon generator, and cabinet harness |
-| `tests/` | Node engine tests and the Playwright cabinet suite |
+| `vendor/` | Three.js r180 module build, bundled into the published `src/main.js`, and its MIT license |
+| `scripts/` | Preview server, site staging and bundling, icon generator, and cabinet harness |
+| `tests/` | Node engine, icon, and size-budget tests; Playwright cabinet and accessibility suites |
 
 ## Credits
 

@@ -392,6 +392,7 @@ function onEvent(type, data = {}) {
       saveBest();
       music?.setPlaying(false);
       showMessage('BUILD FAILED', 'Out of lives.', `Final score ${pad(game.score)}. Best ${pad(best)}.`, 'New game');
+      announce(`Out of lives. Final score ${pad(game.score)}. Best ${pad(best)}. Press Space or choose New game to play again.`);
       break;
     default: break;
   }
@@ -468,6 +469,7 @@ function updateHud() {
   $('serve-hint').hidden = status !== 'serving';
   $('pause').disabled = !['serving', 'playing', 'paused', 'cleared'].includes(status);
   $('pause').textContent = status === 'paused' ? '▶' : 'Ⅱ';
+  $('pause').title = status === 'paused' ? 'Resume (P or Esc)' : 'Pause (P or Esc)';
   $('pause').setAttribute('aria-label', status === 'paused' ? 'Resume game' : 'Pause game');
 }
 
@@ -664,7 +666,7 @@ $('theme').addEventListener('click', () => {
   dirtyWorld = true;
 });
 function syncThemeButton() {
-  $('theme').setAttribute('aria-pressed', String(isDark()));
+  // The label names the theme the button switches to, so it carries no pressed state: both signals together would contradict each other.
   $('theme').textContent = isDark() ? 'Light mode' : 'Dark mode';
   // Keep the browser/installed-app title bar in step with the in-game theme.
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = isDark() ? '#25232f' : '#f7f4e9';
@@ -776,7 +778,8 @@ function init() {
   $('best').textContent = pad(best);
   game = new Game({ seed: crypto.getRandomValues(new Uint32Array(1))[0], onEvent });
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    // A board of boxes and spheres does not need the discrete GPU; prefer the battery-friendly adapter.
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'low-power' });
   } catch (error) {
     console.warn('WebGL is unavailable.', error);
     const notice = document.createElement('div');
@@ -788,7 +791,7 @@ function init() {
     $('message').hidden = true;
     return;
   }
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;

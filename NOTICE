@@ -9,4 +9,5 @@ artwork terms: https://octodex.github.com/faq/
 
 The GitHub mark comes from Primer Octicons; see assets/Octicons-LICENSE.txt.
 
-Three.js is vendored in vendor/; see vendor/three-LICENSE.txt.
+Three.js is vendored in vendor/ and bundled into the published src/main.js;
+see vendor/three-LICENSE.txt.
