@@ -1,0 +1,7 @@
+# Keep text files LF in every checkout, including Windows checkouts with
+# core.autocrlf=true, so byte-for-byte tests such as the icon-drift test in
+# tests/icons.test.js (assets/favicon.svg) never fail on line endings.
+* text=auto eol=lf
+*.svg text eol=lf
+*.png binary
+*.woff2 binary

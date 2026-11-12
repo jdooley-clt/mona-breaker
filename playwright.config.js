@@ -5,11 +5,13 @@ const webgl = { launchOptions: { args: ['--use-angle=swiftshader', '--enable-uns
 
 export default defineConfig({
   testDir: './tests',
-  testMatch: 'cabinet.spec.js',
+  testMatch: /(cabinet|a11y)\.spec\.js$/,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: 0,
-  workers: process.env.CI ? 2 : undefined,
+  retries: process.env.CI ? 2 : 0,
+  // Two workers everywhere: the gameplay specs render WebGL on the CPU (SwiftShader), and eight parallel
+  // renderers starve each other into timeouts.
+  workers: 2,
   timeout: 90_000,
   expect: { timeout: 10_000 },
   reporter: [['list']],
