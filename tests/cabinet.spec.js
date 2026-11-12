@@ -1,62 +1,9 @@
 import { readFile } from 'node:fs/promises';
-import { test as base, expect } from '@playwright/test';
-import { cabinetRoot, cabinetSha, candidateCatalog, origin } from '../scripts/cabinet.mjs';
-
-const candidate = `${origin}/mona-breaker/`;
-const SIBLING_STUB = '<!doctype html><title>Sibling stub</title><p>Sibling game stub</p>';
-
-const test = base.extend({
-  page: async ({ page }, use) => {
-    const failures = [];
-    const failed = [];
-    page.on('pageerror', (error) => failures.push(error.message));
-    page.on('console', (message) => { if (message.type() === 'error') failures.push(message.text()); });
-    page.on('response', (response) => { if (response.status() >= 400) failures.push(`${response.status()} ${response.url()}`); });
-    page.on('requestfailed', (request) => failed.push(request));
-    // Sibling games and the standalone Arcade backlink are isolated so tests do not depend on the network.
-    await page.route('https://jdooley-clt.github.io/**', (route) => route.fulfill({ contentType: 'text/html', body: SIBLING_STUB }));
-    await use(page);
-    for (const request of failed) {
-      const reason = request.failure()?.errorText;
-      if (request.isNavigationRequest() && request.frame().isDetached() && ['net::ERR_ABORTED', 'cancelled'].includes(reason)) continue;
-      failures.push(`${reason} ${request.url()}`);
-    }
-    expect(failures, 'No uncaught errors, console errors, or failed requests').toEqual([]);
-  },
-});
-
-const card = (page) => page.getByRole('button', { name: 'Play Mona Breaker', exact: true });
-const stageData = (frame, key) => frame.locator('#stage').getAttribute(`data-${key}`);
-
-async function readyGame(page) {
-  const iframe = page.locator('#frame-host iframe');
-  await expect(iframe).toHaveCount(1);
-  await expect(iframe).toHaveAttribute('src', candidate);
-  await expect.poll(() => page.frames().find((f) => f.url() === candidate)?.url()).toBe(candidate);
-  const frame = page.frames().find((f) => f.url() === candidate);
-  await expect.poll(() => stageData(frame, 'status'), { timeout: 30_000 }).toBe('ready');
-  await expect(frame.locator('#arcade-link')).toBeHidden();
-  // A blank WebGL canvas compresses to almost nothing; a rendered board does not.
-  await expect.poll(async () => (await frame.locator('#scene').screenshot()).length, { message: 'WebGL board rendered', timeout: 30_000 }).toBeGreaterThan(20_000);
-  return frame;
-}
-
-async function launchWithSpace(page, frame) {
-  const scroll = await page.evaluate(() => scrollY);
-  await page.keyboard.press('Space');
-  await expect.poll(() => stageData(frame, 'status')).toBe('playing');
-  await expect(page.locator('#frame-host iframe')).toBeFocused();
-  expect(await page.evaluate(() => scrollY), 'Space does not scroll the cabinet').toBe(scroll);
-  expect(await frame.evaluate(() => scrollY), 'Space does not scroll the game document').toBe(0);
-  const y = Number(await stageData(frame, 'ball-y'));
-  await expect.poll(async () => Number(await stageData(frame, 'ball-y')), { message: 'ball travels' }).not.toBe(y);
-}
+import { cabinetRoot, candidateCatalog } from '../scripts/cabinet.mjs';
+import { CSP, candidate, card, expect, expectServedBuild, launchWithSpace, readyGame, settledBox, stageData, test } from './harness.js';
 
 test.beforeEach(async ({ page, request }) => {
-  expect(await (await request.get('/health')).json()).toEqual({ cabinetSha });
-  const served = await request.get(candidate);
-  expect(served.ok()).toBeTruthy();
-  expect(await served.text()).toBe(await readFile('_site/index.html', 'utf8'));
+  await expectServedBuild(request);
   await page.goto('/arcade/');
   await expect(card(page)).toBeVisible();
 });
@@ -182,8 +129,37 @@ test('switching to another game detaches the Mona Breaker frame', async ({ page,
   await expect(page.locator('#frame-host iframe')).toHaveAttribute('src', candidate);
 });
 
+test('Content Security Policy is served and nothing violates it across launch, play, and return', async ({ page, cspViolations, isMobile }) => {
+  test.skip(isMobile, 'Runs once on desktop; the fixture still asserts zero violations in every test on every project.');
+  await card(page).click();
+  let frame = await readyGame(page);
+  await expect(frame.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveCount(1);
+  await expect(frame.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveAttribute('content', CSP);
+  await expect(frame.locator('meta[name="referrer"]')).toHaveAttribute('content', 'strict-origin-when-cross-origin');
+  expect(await frame.locator('script:not([src]), style').count(), 'No inline scripts or style elements that the policy would block').toBe(0);
+
+  await launchWithSpace(page, frame);
+  await page.keyboard.press('p');
+  await expect.poll(() => stageData(frame, 'status')).toBe('paused');
+  await page.keyboard.press('p');
+  await expect.poll(() => stageData(frame, 'status')).toBe('playing');
+  await frame.locator('#theme').click();
+  await expect(frame.locator('html')).toHaveAttribute('data-theme', /dark|light/);
+  await frame.locator('#help').click();
+  await expect(frame.locator('#help-dialog')).toBeVisible();
+  await frame.locator('#close-help').click();
+  await expect(frame.locator('#help-dialog')).toBeHidden();
+  await page.locator('#reload-game').click();
+  await expect.poll(() => frame.isDetached()).toBe(true);
+  frame = await readyGame(page);
+  await launchWithSpace(page, frame);
+  await page.locator('#return-button').click();
+  await expect(page.locator('iframe')).toHaveCount(0);
+  expect(cspViolations, 'No securitypolicyviolation events across launch, play, reload and return').toEqual([]);
+});
+
 for (const width of [320, 390]) {
-  test(`touch at ${width}px: no overflow, tap launches, drag steers, controls reachable`, async ({ page, isMobile, browserName }) => {
+  test(`touch at ${width}px: no overflow, drag steers, tap launches, controls reachable`, async ({ page, isMobile, browserName }) => {
     test.skip(!isMobile, 'Touch coverage runs on the mobile project.');
     await page.setViewportSize({ width, height: 800 });
     await page.goto('/arcade/#game/mona-breaker');
@@ -194,18 +170,19 @@ for (const width of [320, 390]) {
     }
     const stage = frame.locator('#stage');
     await stage.scrollIntoViewIfNeeded();
-    const box = await stage.boundingBox();
     await frame.locator('#primary').tap();
     await expect.poll(() => stageData(frame, 'status')).toBe('serving');
-    await stage.tap({ position: { x: box.width / 2, y: box.height * 0.6 } });
-    await expect.poll(() => stageData(frame, 'status')).toBe('playing');
 
+    // Steer while the ball is still attached to the paddle: the paddle follows the drag exactly as in play,
+    // and nothing can change the status underneath the test, so the outcome does not depend on how fast the
+    // machine renders. Wait for the layout to settle and the paddle position to be published before touching.
+    const inner = await settledBox(stage);
+    await expect.poll(() => stageData(frame, 'paddle-x')).not.toBeNull();
     const before = Number(await stageData(frame, 'paddle-x'));
-    const inner = await stage.evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; });
     if (browserName === 'chromium') {
       // Real touch input through the cabinet page and into the iframe.
       const session = await page.context().newCDPSession(page);
-      const frameBox = await page.locator('#frame-host iframe').boundingBox();
+      const frameBox = await settledBox(page.locator('#frame-host iframe'));
       const at = (fx) => [{ x: frameBox.x + inner.x + inner.w * fx, y: frameBox.y + inner.y + inner.h * 0.7 }];
       await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: at(0.5) });
       for (const fx of [0.45, 0.35, 0.25, 0.15]) await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: at(fx) });
@@ -222,7 +199,13 @@ for (const width of [320, 390]) {
       }, inner);
       await expect.poll(async () => Number(await stageData(frame, 'paddle-x'))).toBeLessThan(before - 1);
     }
-    expect(await stageData(frame, 'status'), 'a drag is not a pause or relaunch').toBe('playing');
+    expect(await stageData(frame, 'status'), 'a drag is not a tap: the ball stays attached').toBe('serving');
+
+    await stage.tap({ position: { x: inner.w / 2, y: inner.h * 0.6 } });
+    await expect.poll(() => stageData(frame, 'status')).toBe('playing');
+    // Pause right away so the controls walk below cannot race the ball.
+    await frame.locator('#pause').tap();
+    await expect.poll(() => stageData(frame, 'status')).toBe('paused');
 
     for (const id of ['theme', 'music', 'sound', 'help', 'new-game', 'pause', 'fx-actions', 'percentage']) {
       const control = frame.locator(`#${id}`);
@@ -233,7 +216,7 @@ for (const width of [320, 390]) {
       expect(r.right).toBeLessThanOrEqual(width + 1);
     }
     await frame.locator('#pause').tap();
-    await expect.poll(() => stageData(frame, 'status')).toBe('paused');
+    await expect.poll(() => stageData(frame, 'status')).toBe('playing');
   });
 }
 

@@ -83,6 +83,15 @@ from one 16x16 pixel map in `scripts/icons.mjs`. Edit the map, then run
 Three.js r180 is vendored in `vendor/` exactly as published on npm; there is no
 bundler, transpiler, or CDN request.
 
+`index.html` ships a strict Content Security Policy — `default-src 'self';
+script-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'` —
+and a `strict-origin-when-cross-origin` referrer policy. The game needs no
+allowances: there are no inline `<script>` or `<style>` blocks, no `eval`, and
+no `data:` or `blob:` URLs. The theme bootstrap that runs before the stylesheet
+loads lives in `src/theme.js` for that reason. Line endings are normalized to
+LF by `.gitattributes`, so the icon-drift test also passes on Windows
+checkouts. See `SECURITY.md` for how to report a vulnerability.
+
 ## Cabinet compatibility
 
 The footer's GitHub Arcade link is shown only on the standalone site, not inside
@@ -110,6 +119,17 @@ cleanup, reduced motion, and touch tap/drag with no horizontal overflow at
 320px and 390px. For manual inspection, run `npm run cabinet:serve` and open
 <http://127.0.0.1:4264/arcade/>.
 
+The same suite is the security and accessibility gate. `tests/cabinet.spec.js`
+checks that the Content Security Policy is served and that no
+`securitypolicyviolation` fires across launch, play, and return.
+`tests/a11y.spec.js` runs [axe-core](https://github.com/dequelabs/axe-core)
+through `@axe-core/playwright` on the start, serving, paused, help-dialog, and
+game-over states (both themes on desktop), standalone and inside the cabinet
+frame, with the WCAG 2.5.3 *Label in Name* rule switched on; any serious or
+critical violation fails the run, and an injected unnamed button proves the
+gate fires. Each state's axe results, including "needs review" items such as
+text over the 3D board, are attached to the Playwright report.
+
 Limitations: this is headless Chromium (desktop and Pixel 7 emulation) and
 WebKit (iPhone 13 emulation), not physical devices or Firefox. WebKit drag uses
 synthetic touch pointer events. Audio output is not checked audibly.
@@ -120,6 +140,13 @@ Pushes to `main` run **Cabinet compatibility**. Only if it passes does the
 deploy job publish the tested `_site/` artifact to GitHub Pages and confirm the
 published `index.html` digest. Pull requests and forks never deploy. Pages must
 use **GitHub Actions** as its source (Settings → Pages).
+
+Playwright runs two workers, locally and in CI, because the software-rendered
+WebGL board starves when more browsers share the runner; CI also retries a
+failed test twice. If the main run flakes: `gh run rerun <run-id> --failed`;
+deploy only happens after the gate is green. Actions are pinned to commit SHAs,
+and Dependabot proposes weekly updates for them and for the npm dev
+dependencies.
 
 ## Source layout
 
