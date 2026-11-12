@@ -5,13 +5,13 @@
   --surface: #fffdf4;
   --surface-soft: #f1ecdf;
   --border: #d5d1c5;
-  --border-strong: #a39d90;
+  --border-strong: #928c7f;
   --ink: #34313e;
   --muted: #67616e;
   --soft: #625c6a;
   --lavender: #ded4f1;
   --lavender-edge: #b6a3d2;
-  --lavender-deep: #6f5a9a;
+  --lavender-deep: #6c5796;
   --mint: #c5e7d8;
   --mint-edge: #8ab7a3;
   --coral: #ffb7a5;
@@ -88,6 +88,7 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 .top-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .chip { padding: 6px 11px; font-size: 12px; font-weight: 650; border-width: 1.5px; background: var(--surface); }
 .chip[aria-pressed="false"]:is(#music, #sound) { color: var(--muted); border-style: dashed; }
+.chip[aria-pressed="false"]:is(#music, #sound):hover { color: var(--ink); }
 .chip.round { width: 32px; padding: 6px 0; }
 
 .heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin: 18px 0 14px; }

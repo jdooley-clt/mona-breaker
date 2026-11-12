@@ -1,12 +1,16 @@
 import AxeBuilder from '@axe-core/playwright';
 import { card, expect, expectServedBuild, readyGame, readyStandalone, stageData, test } from './harness.js';
 
-// Violations at these impacts fail the gate; moderate and minor results are attached to the report only.
-const GATE = ['critical', 'serious'];
 // axe frame path for everything inside the embedded game; `html` keeps page-level rules such as html-has-lang active.
 const GAME_FRAME = ['#frame-host iframe', 'html'];
+// axe files these two rules under "needs review" instead of failing when it cannot decide, so they are checked here as well.
+const REVIEWED = ['aria-prohibited-attr', 'label-content-name-mismatch'];
+// Buttons whose visible text is a symbol ("?", "Ⅱ"/"▶", "×"), not a word. WCAG 2.5.3 does not count symbolic characters as
+// a visible label and asks for the function as the name, which these carry; axe cannot judge that and files them for review.
+const SYMBOLIC_BUTTONS = ['#help', '#pause', '#close-help'];
 
 const describe = (result) => `${result.id} [${result.impact}] ${result.nodes.map((n) => n.target.join(' >> ')).join(', ')}`;
+const isSymbolicButton = (result, node) => result.id === 'label-content-name-mismatch' && SYMBOLIC_BUTTONS.includes(node.target.at(-1));
 
 function builder(page) {
   // WCAG 2.5.3 Label in Name (label-content-name-mismatch) is still experimental in axe-core, so it is switched on explicitly.
@@ -21,8 +25,11 @@ async function audit(page, state, { scope } = {}) {
     contentType: 'application/json',
     body: JSON.stringify({ url: results.url, violations: results.violations.map(describe), incomplete: results.incomplete.map(describe) }, null, 2),
   });
-  const gated = results.violations.filter((violation) => GATE.includes(violation.impact)).map(describe);
-  expect(gated, `${state}: no serious or critical accessibility violations`).toEqual([]);
+  expect(results.violations.map(describe), `${state}: no accessibility violations of any impact`).toEqual([]);
+  const unreviewed = results.incomplete
+    .filter((result) => REVIEWED.includes(result.id))
+    .flatMap((result) => result.nodes.filter((node) => !isSymbolicButton(result, node)).map((node) => `${result.id} ${node.target.join(' >> ')}`));
+  expect(unreviewed, `${state}: nothing left for manual ARIA review beyond the symbolic buttons`).toEqual([]);
   return results;
 }
 
@@ -97,6 +104,7 @@ test('standalone: game over passes in both themes', async ({ page, isMobile, bro
   }
   expect(await stageData(page, 'status')).toBe('over');
   await expect(page.locator('#message')).toBeVisible();
+  await expect(page.locator('#announcer'), 'the end of the game is announced to assistive technology').toContainText('Out of lives');
   await audit(page, 'standalone game over (light)');
   await setTheme(page, 'dark');
   await audit(page, 'standalone game over (dark)');

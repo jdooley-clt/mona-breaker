@@ -26,7 +26,7 @@
         <span>GitHub<span class="brand-sub"> / Arcade</span></span>
       </a>
       <div class="top-actions">
-        <button id="theme" class="chip" type="button" aria-pressed="false" title="Toggle dark mode">Dark mode</button>
+        <button id="theme" class="chip" type="button" title="Toggle dark mode">Dark mode</button>
         <button id="music" class="chip" type="button" aria-pressed="true" title="Toggle the original chiptune (M toggles all audio)">Music on</button>
         <button id="sound" class="chip" type="button" aria-pressed="true" title="Toggle sound effects (M toggles all audio)">SFX on</button>
         <button id="help" class="chip round" type="button" aria-label="How to play">?</button>
@@ -57,7 +57,7 @@
           </div>
         </div>
 
-        <div class="stage" id="stage" tabindex="0" data-status="loading"
+        <div class="stage" id="stage" role="group" tabindex="0" data-status="loading"
           aria-label="3D brick breaker. Move with the mouse, arrow keys or A and D, or drag on touch screens. Press Space or tap to launch. P pauses.">
           <canvas id="scene" aria-hidden="true"></canvas>
           <div class="stage-buttons">
@@ -73,7 +73,7 @@
           </div>
         </div>
 
-        <div class="effects" aria-label="Active power-ups">
+        <div class="effects" role="group" aria-label="Active power-ups">
           <span class="effect" id="fx-copilot" data-type="copilot" data-active="false"><i aria-hidden="true"></i><span>Copilot <small>multi-ball + auto-aim</small></span><b>--</b></span>
           <span class="effect" id="fx-dependabot" data-type="dependabot" data-active="false"><i aria-hidden="true"></i><span>Dependabot <small>shield</small></span><b>--</b></span>
           <span class="effect" id="fx-actions" data-type="actions" data-active="false"><i aria-hidden="true"></i><span>Actions <small>lasers</small></span><b>--</b></span>
